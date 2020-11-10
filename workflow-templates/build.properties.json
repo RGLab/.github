@@ -1,0 +1,9 @@
+{
+    "name": "cyto ci build Workflow",
+    "description": "cyto ci build workflow template.",
+    "iconName": "example-icon",
+    "categories": [
+        "R"
+    ]
+  
+}
