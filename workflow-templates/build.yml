@@ -3,8 +3,6 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 #
-# See https://github.com/r-lib/actions/tree/master/examples#readme for
-# additional example workflows available for the R community.
 
 name: build
 
@@ -46,7 +44,12 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
 
       - uses: r-lib/actions/setup-pandoc@v1
-
+      
+      - name: set token for cytoinstaller(and remotes) to increase github API rate limit
+        env:
+          SUPER_SECRET: ${{ secrets.CYTOINSTALLER_TOKEN }}
+        run: echo "GITHUB_TOKEN=$SUPER_SECRET" >> $GITHUB_ENV
+ 
       - name: Query dependencies
         run: |
           install.packages('remotes')
@@ -85,6 +88,24 @@ jobs:
           cytoinstaller::cyto_install_deps(dependencies = TRUE)
         shell: Rscript {0}
 
+      - name: check rate limit
+        run: |
+          gh::gh("GET /rate_limit")$resources$core$remaining
+        shell: Rscript {0}
+        
+      - name: Check
+        env:
+          _R_CHECK_CRAN_INCOMING_REMOTE_: false
+        run: rcmdcheck::rcmdcheck(args = c("--no-manual"), check_dir = "check")
+        shell: Rscript {0}
+
+      - name: Upload check results
+        if: failure()
+        uses: actions/upload-artifact@main
+        with:
+          name: ${{ runner.os }}-r${{ matrix.config.r }}-results
+          path: check
+          
       - name: build src pkg
         if: runner.os == 'Linux'
         run: devtools::build()
